@@ -112,8 +112,6 @@ GREETINGS = [
     "Ты в безопасности, пока мы здесь. Всё остальное подождёт."
 ]
 
-
-
 # --- Психологический промпт ---
 PSYCHO_PROMPT = """
 Ты — чуткая женщина-психолог, консультант проекта «Я больше не жду».
@@ -131,7 +129,6 @@ PSYCHO_PROMPT = """
 Если текст клиента по-английски — отвечай по-английски.
 Если есть риск самоповреждения — мягко советуй обратиться к службам поддержки.
 """
-
 
 # --- Вспомогательные функции ---
 def get_user(user_id):
@@ -203,6 +200,20 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         user_id = update.effective_user.id
+
+        # --- VIP-доступ для себя ---
+        if user_id == 1195425593:
+            cursor.execute("""
+                UPDATE users
+                SET subscription_end = ?,
+                    free_messages = 999999
+                WHERE user_id = ?
+            """, (
+                (datetime.datetime.now() + datetime.timedelta(days=365)).isoformat(),
+                user_id
+            ))
+            conn.commit()
+
         add_or_update_user(user_id)
         delete_old_users_data()
         user = get_user(user_id)

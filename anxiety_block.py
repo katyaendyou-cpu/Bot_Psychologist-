@@ -14,7 +14,7 @@ MAIN_MENU_KB = ReplyKeyboardMarkup(
 
 
 HARD_MENU_KB = ReplyKeyboardMarkup(
-    [["Тревога"],  # позже добавим: "Слёзы", "Одиночество", "Бессилие"
+    [["Тревога", "Слёзы", "Одиночество"],
      ["Назад"]],
     resize_keyboard=True
 )

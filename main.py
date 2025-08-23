@@ -9,6 +9,9 @@ from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 from openai import OpenAI
 from anxiety_block import setup_anxiety_block, MAIN_MENU_KB
+from tears_block import setup_tears_block
+from loneliness_block import setup_loneliness_block
+
 
 # --- Загрузка ключей ---
 load_dotenv()
@@ -546,6 +549,10 @@ if __name__ == "__main__":
 
         # 3) Подменю «Мне тяжело → Тревога»
         setup_anxiety_block(app)
+        # 3.1) Подменю «Мне тяжело → Слёзы»
+setup_tears_block(app)
+        setup_loneliness_block(app)
+
 
         # 4) Общий обработчик текста/голоса
         app.add_handler(MessageHandler((filters.TEXT & ~filters.COMMAND) | filters.VOICE, handle_message))

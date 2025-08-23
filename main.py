@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 from openai import OpenAI
+from anxiety_block import setup_anxiety_block, MAIN_MENU_KB
 
 # --- Загрузка ключей ---
 load_dotenv()
@@ -127,8 +128,11 @@ MESSAGING_INSERT = """
 - шаги для человека.
 
 Избегай пустых фраз типа «позаботься о себе» или «всё пройдёт».
+Избегай канцелярита и шаблонов; пиши короткими человеческими фразами,
+допускай тёплые междометия («ага», «понимаю»), но без сюсюканья.
 Твои ответы должны быть человечными, развёрнутыми и звучать естественно, не как шаблон.
 """
+
 
 UNIVERSAL_TEMPLATE = """
 Говори тёпло и по-человечески, но после 1–2 эмпатичных фраз переходи к структуре:
@@ -322,19 +326,62 @@ def is_ex_topic(text: str) -> bool:
     ]
     return any(k in t for k in keys)
 
+# --- Поговорить (главная функция) ---
+async def talk_entry(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = (
+        "Я рядом и слушаю.\n\n"
+        "Напиши, что происходит — как будто пишешь близкому человеку. "
+        "Я отвечу живо и по делу: короткая поддержка, разбор причин и шаги, что делать дальше. 🌿"
+    )
+    await update.message.reply_text(text)
+    # Дальше любые сообщения пойдут в handle_message — твой «психологический режим».
+
+# --- Записка от меня ---
+NOTES = [
+    "Ты не обязана быть сильной каждую секунду. Можно просто быть.",
+    "Ты важна. Твоё состояние имеет значение.",
+    "Сегодня можно выбрать мягкость к себе.",
+    "Ты справляешься лучше, чем думаешь.",
+    "Иногда маленький шаг — это уже победа.",
+]
+async def send_note(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("💌 " + random.choice(NOTES))
+
+# --- Обними меня ---
+HUGS = [
+    "Обнимаю тебя мысленно. Дыши. Я рядом.",
+    "Твоё сердце сейчас под защитой. Обнимаю.",
+    "Держу тебя за руку — ты не одна.",
+    "Тёплое объятие здесь. Чуть-чуть легче — уже хорошо.",
+]
+async def send_hug(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("🤍 " + random.choice(HUGS))
+
+# --- Аффирмация дня ---
+AFFIRMATIONS = [
+    "Я выбираю бережность к себе.",
+    "Я в безопасности здесь и сейчас.",
+    "Я достойна любви и спокойствия.",
+    "Я могу идти маленькими шагами — этого достаточно.",
+    "Я слышу себя и уважаю свои границы.",
+    "Моё тело — мой дом. Я забочусь о нём.",
+    "Я справляюсь лучше, чем думаю.",
+    "Сегодня я выбираю мягкость вместо самокритики.",
+    "Я разрешаю себе чувствовать и жить.",
+    "Я важна. Моё «да» и моё «нет» имеют силу.",
+]
+async def send_affirmation(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("✨ " + random.choice(AFFIRMATIONS))
 
 # --- Команда /start ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     add_or_update_user(update.effective_user.id)
     delete_old_users_data()
 
-    keyboard = [["Начать"]]
-    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
-
     first_name = update.effective_user.first_name or "друг"
     welcome_text = WELCOME_TEXT_TEMPLATE.format(name=first_name)
 
-    await update.message.reply_text(welcome_text, reply_markup=reply_markup)
+    await update.message.reply_text(welcome_text, reply_markup=MAIN_MENU_KB)
 
 # --- Обработка сообщений ---
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -485,9 +532,24 @@ if __name__ == "__main__":
     try:
         print("🚀 Запуск бота...")
         delete_old_users_data()
+
         app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+
+        # 1) /start
         app.add_handler(CommandHandler("start", start))
-        app.add_handler(MessageHandler(filters.TEXT | filters.VOICE, handle_message))
+
+        # 2) Кнопки главного меню
+        app.add_handler(MessageHandler(filters.TEXT & filters.Regex(r"^Поговорить$"), talk_entry))
+        app.add_handler(MessageHandler(filters.TEXT & filters.Regex(r"^Записка от меня$"), send_note))
+        app.add_handler(MessageHandler(filters.TEXT & filters.Regex(r"^Обними меня$"), send_hug))
+        app.add_handler(MessageHandler(filters.TEXT & filters.Regex(r"^Аффирмация дня$"), send_affirmation))
+
+        # 3) Подменю «Мне тяжело → Тревога»
+        setup_anxiety_block(app)
+
+        # 4) Общий обработчик текста/голоса
+        app.add_handler(MessageHandler((filters.TEXT & ~filters.COMMAND) | filters.VOICE, handle_message))
+
         print("✅ Бот запущен и слушает сообщения...")
         app.run_polling()
     except Exception as e:

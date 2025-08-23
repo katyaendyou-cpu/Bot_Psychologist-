@@ -2,3 +2,7 @@
 __pycache__/
 *.db
 
+.env
+__pycache__/
+*.db
+.DS_Store

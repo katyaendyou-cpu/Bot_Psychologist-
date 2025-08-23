@@ -547,12 +547,10 @@ if __name__ == "__main__":
         app.add_handler(MessageHandler(filters.TEXT & filters.Regex(r"^Обними меня$"), send_hug))
         app.add_handler(MessageHandler(filters.TEXT & filters.Regex(r"^Аффирмация дня$"), send_affirmation))
 
-        # 3) Подменю «Мне тяжело → Тревога»
-        setup_anxiety_block(app)
-        # 3.1) Подменю «Мне тяжело → Слёзы»
-setup_tears_block(app)
-        setup_loneliness_block(app)
-
+        # 3) Подменю «Мне тяжело»
+        setup_anxiety_block(app)       # Тревога
+        setup_tears_block(app)         # Слёзы
+        setup_loneliness_block(app)    # Одиночество
 
         # 4) Общий обработчик текста/голоса
         app.add_handler(MessageHandler((filters.TEXT & ~filters.COMMAND) | filters.VOICE, handle_message))
